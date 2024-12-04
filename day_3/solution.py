@@ -1,4 +1,5 @@
 import re
+from bisect import bisect_left
 
 
 def load_data():
@@ -25,38 +26,30 @@ def part_1():
 def part_2():
     pattern = re.compile(r'mul\(\d+,\d+\)')
     data = load_data()
-    ends = []
-    idx = 0
 
-    good_ops = []
+    multiply_matches = [
+        (match.start(), match.group(0)) for match in re.finditer(pattern, data)
+    ]
 
-    position = 0
-    while True:
-        match = re.search(pattern, data[position:])
-        if match is None:
-            break
+    dont_matches = [
+        match.start() for match in re.finditer(r"don't\(\)", data)
+    ]
 
-        new_match = position + match.start()
-        print(f"{match.start()=}")
-        print(f"{new_match=}")
+    do_matches = [
+        match.start() for match in re.finditer(r"do\(\)", data)
+    ]
 
-        try:
-            last_end = ends[idx - 1]
-        except IndexError:
-            pass
-        else:
-            print(f"{last_end=}")
-            fail_regex = re.compile(r"don't\(\)(?!do\(\))")
-            if (result := fail_regex.search(data[last_end:new_match])) is None:
-                good_ops.append(match.group(0))
-            else:
-                print(f"{result.group(0)=}")
+    print(multiply_matches)
+    good_matches = []
+    for start, match in multiply_matches:
+        highest_dont = bisect_left(dont_matches, start) - 1
+        highest_do = bisect_left(do_matches, start) - 1
 
-        position += match.end()
-        ends.append(position)
-        idx += 1
+        if do_matches[highest_do] > dont_matches[highest_dont]:
+            good_matches.append(match)
 
-    total = sum([evaluate_match(match) for match in good_ops])
+
+    total = sum([evaluate_match(match) for match in good_matches])
     print(total)
 
 part_2()
